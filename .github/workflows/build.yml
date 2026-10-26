@@ -1,0 +1,107 @@
+name: build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: geoip-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Run vet
+        run: go vet ./...
+
+      - name: Build binaries
+        run: |
+          mkdir -p ./bin
+          go build -trimpath -o ./bin/fetch-ipinfo ./cmd/fetch-ipinfo
+          go build -trimpath -o ./bin/geoip .
+
+      - name: Fetch IPinfo database
+        run: ./bin/fetch-ipinfo -config config.yaml
+
+      - name: Build GeoIP databases
+        run: ./bin/geoip -config config.yaml
+
+      - name: Verify outputs
+        run: |
+          test -s ./output/geoip.dat
+          test -s ./output/geoip-only-cn-private.dat
+          cmp ./output/geoip.dat ./output/geoip-only-cn-private.dat
+          cd ./output
+          sha256sum geoip.dat > geoip.dat.sha256sum
+          sha256sum geoip-only-cn-private.dat > geoip-only-cn-private.dat.sha256sum
+
+      - name: Set release tag
+        if: github.event_name != 'push'
+        id: release
+        run: echo "tag=$(date -u +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: geoip
+          path: |
+            output/geoip.dat
+            output/geoip.dat.sha256sum
+            output/geoip-only-cn-private.dat
+            output/geoip-only-cn-private.dat.sha256sum
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        if: github.event_name != 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release.outputs.tag }}
+          name: ${{ steps.release.outputs.tag }}
+          make_latest: true
+          fail_on_unmatched_files: true
+          files: |
+            output/geoip.dat
+            output/geoip.dat.sha256sum
+            output/geoip-only-cn-private.dat
+            output/geoip-only-cn-private.dat.sha256sum
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prune old releases and tags
+        if: github.event_name != 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release list --limit 1000 --json tagName,createdAt \
+            --jq 'sort_by([.createdAt, .tagName]) | reverse | .[5:] | .[].tagName' |
+          while IFS= read -r tag; do
+            if [ -n "$tag" ]; then
+              gh release delete "$tag" --yes --cleanup-tag
+            fi
+          done

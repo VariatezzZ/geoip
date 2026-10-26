@@ -1,0 +1,41 @@
+# Build configuration for the CN and PRIVATE GeoIP database.
+#
+# Relative paths are resolved from the directory that contains this file.
+
+ipinfo:
+  output: ./ipinfo/ipinfo_lite.mmdb
+  mirrors:
+    - name: alice39s
+      url: https://github.com/Alice39s/ipinfo-csv-lite/releases/latest/download/ipinfo-lite.mmdb
+      checksums: https://github.com/Alice39s/ipinfo-csv-lite/releases/latest/download/checksums.txt
+    - name: networkcats
+      url: https://github.com/NetworkCats/IPinfoLite-Download/releases/latest/download/ipinfo_lite.mmdb
+
+categories:
+  - name: cn
+    sources:
+      - type: ipinfo
+        file: ./ipinfo/ipinfo_lite.mmdb
+        country: CN
+        ip_types: [ipv6]
+      - type: text
+        url: https://raw.githubusercontent.com/zhufengme/block_cn_files/refs/heads/master/cn_ip_list.txt
+        ip_types: [ipv4]
+      - type: text
+        url: https://raw.githubusercontent.com/misakaio/chnroutes2/refs/heads/master/chnroutes.txt
+        ip_types: [ipv4]
+      - type: text
+        url: https://raw.githubusercontent.com/gaoyifan/china-operator-ip/ip-lists/china.txt
+        ip_types: [ipv4]
+      - type: text
+        url: https://raw.githubusercontent.com/gaoyifan/china-operator-ip/ip-lists/china6.txt
+        ip_types: [ipv6]
+
+  - name: private
+    sources:
+      - type: text
+        file: ./data/private.txt
+
+outputs:
+  - ./output/geoip.dat
+  - ./output/geoip-only-cn-private.dat

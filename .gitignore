@@ -1,0 +1,16 @@
+# Build outputs
+/bin/
+/output/
+/dist/
+
+# Downloaded IPinfo database
+/ipinfo/
+*.mmdb
+
+# Release artifacts
+*.dat
+*.sha256sum
+
+# Local editor and OS files
+.DS_Store
+*.swp
