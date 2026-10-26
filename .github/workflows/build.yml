@@ -65,17 +65,6 @@ jobs:
         id: release
         run: echo "tag=$(date -u +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: geoip
-          path: |
-            output/geoip.dat
-            output/geoip.dat.sha256sum
-            output/geoip-only-cn-private.dat
-            output/geoip-only-cn-private.dat.sha256sum
-          if-no-files-found: error
-
       - name: Publish GitHub release
         if: github.event_name != 'push'
         env:
