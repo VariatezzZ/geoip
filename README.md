@@ -76,6 +76,8 @@ The repository uses one branch, `main`.
 - A push to `main` runs tests, vetting, and a full build.
 - A manual dispatch builds and publishes a GitHub Release.
 - Releases contain both DAT files and their SHA-256 sums.
+- Release creation and cleanup use the GitHub CLI directly, without a third-party release action.
+- Workflow actions use Node.js 24 compatible majors: `checkout@v6`, `setup-go@v6`, and `upload-artifact@v7`.
 - Only the five newest releases and their tags are retained.
 - Release tags use the UTC build timestamp. No release branch is created.
 

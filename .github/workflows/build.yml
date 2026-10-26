@@ -22,10 +22,10 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
@@ -66,7 +66,7 @@ jobs:
         run: echo "tag=$(date -u +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: geoip
           path: |
@@ -78,24 +78,27 @@ jobs:
 
       - name: Publish GitHub release
         if: github.event_name != 'push'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.release.outputs.tag }}
-          name: ${{ steps.release.outputs.tag }}
-          make_latest: true
-          fail_on_unmatched_files: true
-          files: |
-            output/geoip.dat
-            output/geoip.dat.sha256sum
-            output/geoip-only-cn-private.dat
-            output/geoip-only-cn-private.dat.sha256sum
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag="${{ steps.release.outputs.tag }}"
+          gh release create "$tag" \
+            --target "$GITHUB_SHA" \
+            --title "$tag" \
+            --notes "Automated GeoIP build for $GITHUB_SHA." \
+            --latest \
+            output/geoip.dat \
+            output/geoip.dat.sha256sum \
+            output/geoip-only-cn-private.dat \
+            output/geoip-only-cn-private.dat.sha256sum
 
       - name: Prune old releases and tags
         if: github.event_name != 'push'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           gh release list --limit 1000 --json tagName,createdAt \
