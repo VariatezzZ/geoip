@@ -11,6 +11,9 @@
 *.dat
 *.sha256sum
 
+# Local handover notes
+/HANDOVER.md
+
 # Local editor and OS files
 .DS_Store
 *.swp
